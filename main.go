@@ -5,19 +5,44 @@ import (
 	"log"
 	"net/http"
 	"text/template"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type User struct {
-	Id        int
-	Name      string
-	Job       string
-	Notes     string
-	Status    int
-	Flag      int
-	CreatedAt string
-	UpdatedAt string
+	Id        int       `json:"id"`
+	Name      string    `json:"name"`
+	Job       string    `json:"job"`
+	Notes     string    `json:"notes"`
+	Status    int       `json:"status"`
+	Flag      int       `json:"flag"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Categories struct {
+	Id          int       `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Status      int       `json:"status"`
+	Flag        int       `json:"flag"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type Activities struct {
+	Id             int       `json:"id"`
+	FkUserID       int       `json:"fk_user_id"`
+	FkCategoriesID int       `json:"fk_categories_id"`
+	ExpenseDate    time.Time `json:"expense_date"`
+	Expense        int       `json:"expense"`
+	TotalExpense   int       `json:"total_expense"`
+	Notes          string    `json:"notes"`
+	Status         int       `json:"status"`
+	Flag           int       `json:"flag"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 func dbConn() (db *sql.DB) {
@@ -25,11 +50,12 @@ func dbConn() (db *sql.DB) {
 	dbUser := "root"
 	dbPass := ""
 	dbName := "latihan"
-	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
+	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName+"?parseTime=true")
 	if err != nil {
 		panic(err.Error())
 	}
 	return db
+
 }
 
 var tmpl = template.Must(template.ParseGlob("form/*"))
@@ -44,7 +70,8 @@ func Index(w http.ResponseWriter, r *http.Request) {
 	res := []User{}
 	for selDB.Next() {
 		var id, status, flag int
-		var name, job, notes, created_at, updated_at string
+		var created_at, updated_at time.Time
+		var name, job, notes string
 		err = selDB.Scan(&id, &name, &job, &notes, &status, &flag, &created_at, &updated_at)
 		if err != nil {
 			panic(err.Error())
@@ -73,7 +100,8 @@ func Show(w http.ResponseWriter, r *http.Request) {
 	usr := User{}
 	for selDB.Next() {
 		var id, status, flag int
-		var name, job, notes, created_at, updated_at string
+		var created_at, updated_at time.Time
+		var name, job, notes string
 		err = selDB.Scan(&id, &name, &job, &notes, &status, &flag, &created_at, &updated_at)
 		if err != nil {
 			panic(err.Error())
@@ -104,9 +132,10 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 	}
 	usr := User{}
 	for selDB.Next() {
-		var id int
+		var id, status, flag int
+		var created_at, updated_at time.Time
 		var name, job, notes string
-		err = selDB.Scan(&id, &name, &job, &notes)
+		err = selDB.Scan(&id, &name, &job, &notes, &status, &flag, &created_at, &updated_at)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -157,7 +186,7 @@ func Update(w http.ResponseWriter, r *http.Request) {
 func Delete(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	usr := r.URL.Query().Get("id")
-	delForm, err := db.Prepare("UPDATE user SET status=0 WHERE id=?")
+	delForm, err := db.Prepare("DELETE FROM user WHERE id=?")
 	if err != nil {
 		panic(err.Error())
 	}
